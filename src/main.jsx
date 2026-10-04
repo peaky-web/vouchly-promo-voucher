@@ -2,24 +2,106 @@ import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { supabase } from './lib/supabase'
 import {
-  ArrowRight, Check, ChevronDown, Clock3, Copy, Gift, LogIn,
-  Menu, Sparkles, Ticket, UserPlus, X
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Clock3,
+  Copy,
+  Gift,
+  LogIn,
+  Menu,
+  Sparkles,
+  Ticket,
+  UserPlus,
+  X
 } from 'lucide-react'
 import './styles.css'
 
+/* =========================================================
+   VOUCHER DATA
+   ========================================================= */
+
+const restaurantImages = {
+  "McDonald's":
+    'https://commons.wikimedia.org/wiki/Special:Redirect/file/McDonald%27s_Big_Mac_hamburger.jpg',
+
+  Jollibee:
+    'https://commons.wikimedia.org/wiki/Special:Redirect/file/Jollibee_chickenjoy_and_rice_%282024-01-19%29.jpg',
+
+  KFC:
+    'https://commons.wikimedia.org/wiki/Special:Redirect/file/KFC_Fried_chicken.jpg',
+
+  'Burger King':
+    'https://commons.wikimedia.org/wiki/Special:Redirect/file/Whopper.jpg'
+}
+
 const fallbackVouchers = [
-  { id: 1, restaurant: "McDonald's", title: '₱100 OFF', description: 'Get ₱100 off your qualifying order.', discount: '₱100 OFF', category: 'Burgers', accent: '#ffb000', expires_at: '2026-12-31', voucher_code: 'MCD100-DEMO' },
-  { id: 2, restaurant: 'Jollibee', title: 'Free Peach Mango Pie', description: 'Enjoy a free Peach Mango Pie with a qualifying meal.', discount: 'FREE PIE', category: 'Chicken', accent: '#e53935', expires_at: '2026-11-30', voucher_code: 'JBL-PIE-DEMO' },
-  { id: 3, restaurant: 'KFC', title: '20% OFF Bucket Meal', description: 'Save 20% on selected bucket meals.', discount: '20% OFF', category: 'Chicken', accent: '#c62828', expires_at: '2026-12-15', voucher_code: 'KFC20-DEMO' },
-  { id: 4, restaurant: 'Burger King', title: '₱80 OFF Whopper', description: 'Take ₱80 off a qualifying Whopper meal.', discount: '₱80 OFF', category: 'Burgers', accent: '#f4511e', expires_at: '2026-10-31', voucher_code: 'BK80-DEMO' },
+  {
+    id: 1,
+    restaurant: "McDonald's",
+    title: '₱100 OFF',
+    description: 'Get ₱100 off your qualifying order.',
+    discount: '₱100 OFF',
+    category: 'Burgers',
+    accent: '#ffb000',
+    expires_at: '2026-12-31',
+    voucher_code: 'MCD100-DEMO',
+    image: restaurantImages["McDonald's"]
+  },
+
+  {
+    id: 2,
+    restaurant: 'Jollibee',
+    title: 'Free Peach Mango Pie',
+    description:
+      'Enjoy a free Peach Mango Pie with a qualifying meal.',
+    discount: 'FREE PIE',
+    category: 'Chicken',
+    accent: '#e53935',
+    expires_at: '2026-11-30',
+    voucher_code: 'JBL-PIE-DEMO',
+    image: restaurantImages.Jollibee
+  },
+
+  {
+    id: 3,
+    restaurant: 'KFC',
+    title: '20% OFF Bucket Meal',
+    description:
+      'Save 20% on selected bucket meals.',
+    discount: '20% OFF',
+    category: 'Chicken',
+    accent: '#c62828',
+    expires_at: '2026-12-15',
+    voucher_code: 'KFC20-DEMO',
+    image: restaurantImages.KFC
+  },
+
+  {
+    id: 4,
+    restaurant: 'Burger King',
+    title: '₱80 OFF Whopper',
+    description:
+      'Take ₱80 off a qualifying Whopper meal.',
+    discount: '₱80 OFF',
+    category: 'Burgers',
+    accent: '#f4511e',
+    expires_at: '2026-10-31',
+    voucher_code: 'BK80-DEMO',
+    image: restaurantImages['Burger King']
+  }
 ]
 
 const restaurantEmoji = {
   "McDonald's": '🍔',
-  'Jollibee': '🍗',
-  'KFC': '🍟',
+  Jollibee: '🍗',
+  KFC: '🍟',
   'Burger King': '👑'
 }
+
+/* =========================================================
+   APP
+   ========================================================= */
 
 function App() {
   const [vouchers, setVouchers] = useState(fallbackVouchers)
@@ -28,7 +110,6 @@ function App() {
     JSON.parse(localStorage.getItem('vouchlyUser') || 'null')
   )
 
-  // Claims now come directly from Supabase for the CURRENT USER.
   const [claims, setClaims] = useState([])
 
   const [modal, setModal] = useState(null)
@@ -41,16 +122,27 @@ function App() {
     loadVouchers()
   }, [])
 
-  // When the logged-in user changes, load ONLY that user's claims.
+  /* =========================================================
+     USER SESSION
+     ========================================================= */
+
   useEffect(() => {
     if (user) {
-      localStorage.setItem('vouchlyUser', JSON.stringify(user))
+      localStorage.setItem(
+        'vouchlyUser',
+        JSON.stringify(user)
+      )
+
       loadUserClaims(user.id)
     } else {
       localStorage.removeItem('vouchlyUser')
       setClaims([])
     }
   }, [user])
+
+  /* =========================================================
+     LOAD VOUCHERS
+     ========================================================= */
 
   async function loadVouchers() {
     const { data, error } = await supabase
@@ -59,12 +151,21 @@ function App() {
       .order('id')
 
     if (!error && data?.length) {
-      setVouchers(data)
+      const vouchersWithImages = data.map(voucher => ({
+        ...voucher,
+
+        image:
+          restaurantImages[voucher.restaurant] || null
+      }))
+
+      setVouchers(vouchersWithImages)
     }
   }
 
-  // IMPORTANT:
-  // Only retrieve claims belonging to the currently logged-in user.
+  /* =========================================================
+     LOAD CURRENT USER CLAIMS
+     ========================================================= */
+
   async function loadUserClaims(userId) {
     if (!userId) {
       setClaims([])
@@ -73,9 +174,13 @@ function App() {
 
     const { data, error } = await supabase
       .from('claims')
-      .select('id, user_id, voucher_id, claimed_at')
+      .select(
+        'id, user_id, voucher_id, claimed_at'
+      )
       .eq('user_id', userId)
-      .order('claimed_at', { ascending: false })
+      .order('claimed_at', {
+        ascending: false
+      })
 
     if (error) {
       showToast(error.message)
@@ -85,6 +190,10 @@ function App() {
 
     setClaims(data || [])
   }
+
+  /* =========================================================
+     OPEN CLAIM
+     ========================================================= */
 
   function openClaim(voucher) {
     setSelectedVoucher(voucher)
@@ -97,18 +206,29 @@ function App() {
     }
   }
 
+  /* =========================================================
+     REGISTER
+     ========================================================= */
+
   async function register(username, password) {
     const clean = username.trim()
 
     if (!clean || !password) {
-      return showToast('Please complete both fields.')
+      return showToast(
+        'Please complete both fields.'
+      )
     }
 
     if (password.length < 4) {
-      return showToast('Use at least 4 characters for the demo password.')
+      return showToast(
+        'Use at least 4 characters for the demo password.'
+      )
     }
 
-    const { data: existing, error: existingError } = await supabase
+    const {
+      data: existing,
+      error: existingError
+    } = await supabase
       .from('users')
       .select('id')
       .eq('username', clean)
@@ -119,10 +239,15 @@ function App() {
     }
 
     if (existing) {
-      return showToast('That username is already registered.')
+      return showToast(
+        'That username is already registered.'
+      )
     }
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error
+    } = await supabase
       .from('users')
       .insert({
         username: clean,
@@ -142,13 +267,22 @@ function App() {
 
     setModal(null)
 
-    showToast('Account created. You are now signed in.')
+    showToast(
+      'Account created. You are now signed in.'
+    )
   }
+
+  /* =========================================================
+     LOGIN
+     ========================================================= */
 
   async function login(username, password) {
     const clean = username.trim()
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error
+    } = await supabase
       .from('users')
       .select('id, username')
       .eq('username', clean)
@@ -160,7 +294,9 @@ function App() {
     }
 
     if (!data) {
-      return showToast('Incorrect username or password.')
+      return showToast(
+        'Incorrect username or password.'
+      )
     }
 
     setUser(data)
@@ -169,20 +305,18 @@ function App() {
     showToast('Welcome back!')
   }
 
+  /* =========================================================
+     CLAIM VOUCHER
+     ========================================================= */
+
   async function claimVoucher(voucher) {
     if (!user) return
 
-    // IMPORTANT:
-    // Check BOTH the current user's ID AND the voucher ID.
-    //
-    // This means:
-    // demo1 + McDonald's = claimed
-    // demo2 + McDonald's = NOT claimed yet
-    //
     const alreadyClaimed = claims.some(
       claim =>
         Number(claim.user_id) === Number(user.id) &&
-        Number(claim.voucher_id) === Number(voucher.id)
+        Number(claim.voucher_id) ===
+          Number(voucher.id)
     )
 
     if (alreadyClaimed) {
@@ -191,7 +325,6 @@ function App() {
       return
     }
 
-    // Save the claim specifically for the current user.
     const { error } = await supabase
       .from('claims')
       .insert({
@@ -200,88 +333,154 @@ function App() {
       })
 
     if (error) {
-      // The database UNIQUE(user_id, voucher_id) constraint
-      // protects against duplicate claims.
-      if (error.message.toLowerCase().includes('duplicate')) {
+      if (
+        error.message
+          .toLowerCase()
+          .includes('duplicate')
+      ) {
         await loadUserClaims(user.id)
+
         setSelectedVoucher(voucher)
         setModal('claimed')
+
         return
       }
 
       return showToast(error.message)
     }
 
-    // Reload claims from Supabase.
     await loadUserClaims(user.id)
 
     setSelectedVoucher(voucher)
     setModal('claimed')
   }
 
+  /* =========================================================
+     LOGOUT
+     ========================================================= */
+
   function logout() {
     setUser(null)
     setClaims([])
     setModal(null)
 
-    showToast('You have been logged out.')
+    showToast(
+      'You have been logged out.'
+    )
   }
+
+  /* =========================================================
+     TOAST
+     ========================================================= */
 
   function showToast(message) {
     setToast(message)
-    setTimeout(() => setToast(''), 3000)
+
+    setTimeout(
+      () => setToast(''),
+      3000
+    )
   }
+
+  /* =========================================================
+     AUTH SWITCH
+     ========================================================= */
 
   function switchAuth(mode) {
     setAuthMode(mode)
     setModal('auth')
   }
 
+  /* =========================================================
+     UI
+     ========================================================= */
+
   return (
     <div className="app">
+
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
 
+      {/* =====================================================
+          NAVBAR
+          ===================================================== */}
+
       <header className="navbar">
+
         <a
           className="brand"
           href="#home"
-          onClick={() => setMenuOpen(false)}
+          onClick={() =>
+            setMenuOpen(false)
+          }
         >
           <span className="brand-icon">
             <Ticket size={20} />
           </span>
+
           <span>Vouchly</span>
         </a>
 
         <button
           className="menu-button"
-          onClick={() => setMenuOpen(v => !v)}
+          onClick={() =>
+            setMenuOpen(v => !v)
+          }
           aria-label="Open menu"
         >
-          {menuOpen ? <X /> : <Menu />}
+          {menuOpen ? (
+            <X />
+          ) : (
+            <Menu />
+          )}
         </button>
 
-        <nav className={menuOpen ? 'nav-links open' : 'nav-links'}>
-          <a href="#vouchers" onClick={() => setMenuOpen(false)}>
+        <nav
+          className={
+            menuOpen
+              ? 'nav-links open'
+              : 'nav-links'
+          }
+        >
+
+          <a
+            href="#vouchers"
+            onClick={() =>
+              setMenuOpen(false)
+            }
+          >
             Vouchers
           </a>
 
-          <a href="#how" onClick={() => setMenuOpen(false)}>
+          <a
+            href="#how"
+            onClick={() =>
+              setMenuOpen(false)
+            }
+          >
             How it works
           </a>
 
-          <a href="#faq" onClick={() => setMenuOpen(false)}>
+          <a
+            href="#faq"
+            onClick={() =>
+              setMenuOpen(false)
+            }
+          >
             FAQ
           </a>
 
           {user ? (
             <button
               className="profile-button"
-              onClick={() => setModal('account')}
+              onClick={() =>
+                setModal('account')
+              }
             >
               <span className="avatar">
-                {user.username.slice(0, 1).toUpperCase()}
+                {user.username
+                  .slice(0, 1)
+                  .toUpperCase()}
               </span>
 
               {user.username}
@@ -298,12 +497,27 @@ function App() {
               Log in
             </button>
           )}
+
         </nav>
       </header>
 
+      {/* =====================================================
+          MAIN
+          ===================================================== */}
+
       <main>
-        <section className="hero" id="home">
+
+        {/* ===================================================
+            HERO
+            =================================================== */}
+
+        <section
+          className="hero"
+          id="home"
+        >
+
           <div className="hero-copy reveal">
+
             <div className="eyebrow">
               <Sparkles size={15} />
               Fresh deals, made simple
@@ -316,23 +530,33 @@ function App() {
             </h1>
 
             <p>
-              Discover limited-time restaurant vouchers and save on the meals
+              Discover limited-time restaurant
+              vouchers and save on the meals
               you already love.
             </p>
 
             <div className="hero-actions">
-              <a className="primary-button" href="#vouchers">
+
+              <a
+                className="primary-button"
+                href="#vouchers"
+              >
                 Explore vouchers
                 <ArrowRight size={18} />
               </a>
 
-              <a className="text-button" href="#how">
+              <a
+                className="text-button"
+                href="#how"
+              >
                 How it works
                 <ChevronDown size={17} />
               </a>
+
             </div>
 
             <div className="trust-row">
+
               <span>
                 <Check size={15} />
                 Easy to claim
@@ -342,10 +566,17 @@ function App() {
                 <Check size={15} />
                 No complicated forms
               </span>
+
             </div>
+
           </div>
 
+          {/* =================================================
+              HERO TICKET
+              ================================================= */}
+
           <div className="hero-ticket reveal delay-one">
+
             <div className="floating-tag tag-one">
               🔥 Popular
             </div>
@@ -355,18 +586,37 @@ function App() {
             </div>
 
             <div className="ticket-card">
+
               <div className="ticket-top">
-                <div className="food-logo">🍔</div>
-                <span>VOUCHLY PICK</span>
+
+                <div className="food-logo">
+                  🍔
+                </div>
+
+                <span>
+                  VOUCHLY PICK
+                </span>
+
               </div>
 
               <div className="ticket-main">
-                <small>McDonald's</small>
-                <strong>₱100 OFF</strong>
-                <p>on selected orders</p>
+
+                <small>
+                  McDonald's
+                </small>
+
+                <strong>
+                  ₱100 OFF
+                </strong>
+
+                <p>
+                  on selected orders
+                </p>
+
               </div>
 
               <div className="ticket-divider">
+
                 <i />
                 <i />
                 <i />
@@ -374,137 +624,260 @@ function App() {
                 <i />
                 <i />
                 <i />
+
               </div>
 
               <div className="ticket-bottom">
-                <span>LIMITED OFFER</span>
-                <b>MCD100-DEMO</b>
+
+                <span>
+                  LIMITED OFFER
+                </span>
+
+                <b>
+                  MCD100-DEMO
+                </b>
+
               </div>
+
             </div>
+
           </div>
+
         </section>
+
+        {/* ===================================================
+            STATS
+            =================================================== */}
 
         <section className="stats-strip">
+
           <div>
-            <strong>{vouchers.length}+</strong>
-            <span>featured deals</span>
+            <strong>
+              {vouchers.length}+
+            </strong>
+
+            <span>
+              featured deals
+            </span>
           </div>
 
           <div>
-            <strong>4</strong>
-            <span>restaurant brands</span>
+            <strong>
+              4
+            </strong>
+
+            <span>
+              restaurant brands
+            </span>
           </div>
 
           <div>
-            <strong>1 tap</strong>
-            <span>to claim</span>
+            <strong>
+              1 tap
+            </strong>
+
+            <span>
+              to claim
+            </span>
           </div>
+
         </section>
 
-        <section className="section" id="vouchers">
+        {/* ===================================================
+            VOUCHERS
+            =================================================== */}
+
+        <section
+          className="section"
+          id="vouchers"
+        >
+
           <div className="section-heading">
+
             <div>
+
               <span className="section-label">
                 TODAY'S DEALS
               </span>
 
               <h2>
-                Pick your next <span>favorite.</span>
+                Pick your next{' '}
+                <span>
+                  favorite.
+                </span>
               </h2>
+
             </div>
 
             <p>
-              Browse available offers. You only need an account when you're
-              ready to claim.
+              Browse available offers.
+              You only need an account
+              when you're ready to claim.
             </p>
+
           </div>
 
           <div className="voucher-grid">
-            {vouchers.map((voucher, index) => {
 
-              // IMPORTANT:
-              // Only this logged-in user determines whether
-              // this voucher shows as "Claimed".
-              const alreadyClaimed = claims.some(
-                claim =>
-                  Number(claim.user_id) === Number(user?.id) &&
-                  Number(claim.voucher_id) === Number(voucher.id)
-              )
+            {vouchers.map(
+              (voucher, index) => {
 
-              return (
-                <article
-                  className="voucher-card reveal"
-                  style={{
-                    '--accent': voucher.accent,
-                    animationDelay: `${index * 80}ms`
-                  }}
-                  key={voucher.id}
-                >
-                  <div className="card-visual">
-                    <span className="food-emoji">
-                      {restaurantEmoji[voucher.restaurant] || '🍴'}
-                    </span>
+                const alreadyClaimed =
+                  claims.some(
+                    claim =>
+                      Number(
+                        claim.user_id
+                      ) ===
+                        Number(user?.id) &&
+                      Number(
+                        claim.voucher_id
+                      ) ===
+                        Number(voucher.id)
+                  )
 
-                    <span className="discount-pill">
-                      {voucher.discount}
-                    </span>
-                  </div>
+                return (
 
-                  <div className="card-body">
-                    <div className="restaurant">
-                      {voucher.restaurant}
-                    </div>
+                  <article
+                    className="voucher-card reveal"
+                    style={{
+                      '--accent':
+                        voucher.accent,
+                      animationDelay:
+                        `${index * 80}ms`
+                    }}
+                    key={voucher.id}
+                  >
 
-                    <h3>{voucher.title}</h3>
+                    {/* =======================================
+                        RESTAURANT IMAGE
+                        ======================================= */}
 
-                    <p>{voucher.description}</p>
+                    <div className="card-visual">
 
-                    <div className="card-meta">
-                      <span>
-                        <Clock3 size={14} />
-                        Until {formatDate(voucher.expires_at)}
-                      </span>
-                    </div>
+                      {voucher.image ? (
 
-                    <button
-                      className={
-                        alreadyClaimed
-                          ? 'claim-button claimed'
-                          : 'claim-button'
-                      }
-                      onClick={() => openClaim(voucher)}
-                    >
-                      {alreadyClaimed ? (
-                        <>
-                          <Check size={17} />
-                          Claimed
-                        </>
+                        <img
+                          src={voucher.image}
+                          alt={`${voucher.restaurant} food`}
+                          className="voucher-image"
+                        />
+
                       ) : (
-                        <>
-                          Claim voucher
-                          <ArrowRight size={17} />
-                        </>
+
+                        <span className="food-emoji">
+                          {
+                            restaurantEmoji[
+                              voucher.restaurant
+                            ] || '🍴'
+                          }
+                        </span>
+
                       )}
-                    </button>
-                  </div>
-                </article>
-              )
-            })}
+
+                      <span className="discount-pill">
+                        {voucher.discount}
+                      </span>
+
+                    </div>
+
+                    {/* =======================================
+                        CARD BODY
+                        ======================================= */}
+
+                    <div className="card-body">
+
+                      <div className="restaurant">
+                        {voucher.restaurant}
+                      </div>
+
+                      <h3>
+                        {voucher.title}
+                      </h3>
+
+                      <p>
+                        {voucher.description}
+                      </p>
+
+                      <div className="card-meta">
+
+                        <span>
+                          <Clock3 size={14} />
+
+                          Until{' '}
+                          {formatDate(
+                            voucher.expires_at
+                          )}
+                        </span>
+
+                      </div>
+
+                      <button
+                        className={
+                          alreadyClaimed
+                            ? 'claim-button claimed'
+                            : 'claim-button'
+                        }
+                        onClick={() =>
+                          openClaim(voucher)
+                        }
+                      >
+
+                        {alreadyClaimed ? (
+
+                          <>
+                            <Check size={17} />
+                            Claimed
+                          </>
+
+                        ) : (
+
+                          <>
+                            Claim voucher
+                            <ArrowRight size={17} />
+                          </>
+
+                        )}
+
+                      </button>
+
+                    </div>
+
+                  </article>
+
+                )
+              }
+            )}
+
           </div>
+
         </section>
 
-        <section className="how-section" id="how">
+        {/* ===================================================
+            HOW IT WORKS
+            =================================================== */}
+
+        <section
+          className="how-section"
+          id="how"
+        >
+
           <div className="section-heading centered">
+
             <span className="section-label">
               HOW IT WORKS
             </span>
 
             <h2>
-              Three steps. <span>That's it.</span>
+              Three steps.{' '}
+              <span>
+                That's it.
+              </span>
             </h2>
+
           </div>
 
           <div className="steps">
+
             <Step
               number="01"
               icon={<Gift />}
@@ -525,21 +898,37 @@ function App() {
               title="Claim & enjoy"
               text="Claim your voucher and keep it available in your account."
             />
+
           </div>
+
         </section>
 
-        <section className="faq-section section" id="faq">
+        {/* ===================================================
+            FAQ
+            =================================================== */}
+
+        <section
+          className="faq-section section"
+          id="faq"
+        >
+
           <div className="section-heading centered">
+
             <span className="section-label">
               FAQ
             </span>
 
             <h2>
-              Questions? <span>We've got you.</span>
+              Questions?{' '}
+              <span>
+                We've got you.
+              </span>
             </h2>
+
           </div>
 
           <div className="faq-list">
+
             <Faq
               q="Can I browse without an account?"
               a="Yes. The public voucher catalog is available to everyone. An account is only required when you claim a voucher."
@@ -559,11 +948,19 @@ function App() {
               q="Are these official restaurant vouchers?"
               a="This website is a school demonstration project. The offers shown are sample promotional data and are not presented as official offers from the restaurant brands."
             />
+
           </div>
+
         </section>
 
+        {/* ===================================================
+            CTA
+            =================================================== */}
+
         <section className="cta-section">
+
           <div>
+
             <span className="section-label">
               READY?
             </span>
@@ -571,8 +968,11 @@ function App() {
             <h2>
               Find a deal worth
               <br />
-              <span>saving for.</span>
+              <span>
+                saving for.
+              </span>
             </h2>
+
           </div>
 
           <a
@@ -582,91 +982,187 @@ function App() {
             Browse vouchers
             <ArrowRight size={18} />
           </a>
+
         </section>
+
       </main>
 
+      {/* =====================================================
+          FOOTER
+          ===================================================== */}
+
       <footer>
+
         <div className="footer-brand">
+
           <span className="brand-icon">
             <Ticket size={18} />
           </span>
+
           Vouchly
+
         </div>
 
         <p>
           School demonstration project · Promotional voucher concept
         </p>
+
       </footer>
 
+      {/* =====================================================
+          AUTH MODAL
+          ===================================================== */}
+
       {modal === 'auth' && (
+
         <AuthModal
           mode={authMode}
           setMode={setAuthMode}
-          onClose={() => setModal(null)}
+          onClose={() =>
+            setModal(null)
+          }
           onLogin={login}
           onRegister={register}
         />
+
       )}
 
-      {modal === 'claimed' && selectedVoucher && (
-        <ClaimedModal
-          voucher={selectedVoucher}
-          onClose={() => setModal(null)}
-        />
-      )}
+      {/* =====================================================
+          CLAIMED MODAL
+          ===================================================== */}
+
+      {modal === 'claimed' &&
+        selectedVoucher && (
+
+          <ClaimedModal
+            voucher={selectedVoucher}
+            onClose={() =>
+              setModal(null)
+            }
+          />
+
+        )}
+
+      {/* =====================================================
+          ACCOUNT MODAL
+          ===================================================== */}
 
       {modal === 'account' && (
+
         <AccountModal
           user={user}
           vouchers={vouchers}
           claims={claims}
-          onClose={() => setModal(null)}
+          onClose={() =>
+            setModal(null)
+          }
           onLogout={logout}
         />
+
       )}
 
+      {/* =====================================================
+          TOAST
+          ===================================================== */}
+
       {toast && (
+
         <div className="toast">
+
           <Check size={17} />
+
           {toast}
+
         </div>
+
       )}
+
     </div>
   )
 }
 
-function Step({ number, icon, title, text }) {
+/* =========================================================
+   STEP COMPONENT
+   ========================================================= */
+
+function Step({
+  number,
+  icon,
+  title,
+  text
+}) {
   return (
     <div className="step-card reveal">
-      <span className="step-number">{number}</span>
+
+      <span className="step-number">
+        {number}
+      </span>
 
       <div className="step-icon">
         {icon}
       </div>
 
-      <h3>{title}</h3>
+      <h3>
+        {title}
+      </h3>
 
-      <p>{text}</p>
+      <p>
+        {text}
+      </p>
+
     </div>
   )
 }
 
+/* =========================================================
+   FAQ COMPONENT
+   ========================================================= */
+
 function Faq({ q, a }) {
-  const [open, setOpen] = useState(false)
+
+  const [open, setOpen] =
+    useState(false)
 
   return (
-    <div className={open ? 'faq-item open' : 'faq-item'}>
-      <button onClick={() => setOpen(v => !v)}>
-        <span>{q}</span>
+
+    <div
+      className={
+        open
+          ? 'faq-item open'
+          : 'faq-item'
+      }
+    >
+
+      <button
+        onClick={() =>
+          setOpen(v => !v)
+        }
+      >
+
+        <span>
+          {q}
+        </span>
+
         <ChevronDown />
+
       </button>
 
       <div className="faq-answer">
-        <p>{a}</p>
+
+        <p>
+          {a}
+        </p>
+
       </div>
+
     </div>
+
   )
 }
+
+/* =========================================================
+   AUTH MODAL
+   ========================================================= */
 
 function AuthModal({
   mode,
@@ -675,25 +1171,41 @@ function AuthModal({
   onLogin,
   onRegister
 }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+
+  const [username, setUsername] =
+    useState('')
+
+  const [password, setPassword] =
+    useState('')
 
   const submit = e => {
+
     e.preventDefault()
 
     mode === 'login'
-      ? onLogin(username, password)
-      : onRegister(username, password)
+      ? onLogin(
+          username,
+          password
+        )
+      : onRegister(
+          username,
+          password
+        )
   }
 
   return (
+
     <div
       className="modal-backdrop"
       onMouseDown={e =>
-        e.target === e.currentTarget && onClose()
+        e.target ===
+          e.currentTarget &&
+        onClose()
       }
     >
+
       <div className="modal auth-modal">
+
         <button
           className="close-button"
           onClick={onClose}
@@ -706,42 +1218,60 @@ function AuthModal({
         </div>
 
         <span className="section-label">
+
           {mode === 'login'
             ? 'WELCOME BACK'
             : 'JOIN VOUCHLY'}
+
         </span>
 
         <h2>
+
           {mode === 'login'
             ? 'Log in to claim.'
             : 'Create your account.'}
+
         </h2>
 
         <p>
+
           {mode === 'login'
             ? 'Enter your details to continue.'
             : 'It only takes a few seconds.'}
+
         </p>
 
         <form onSubmit={submit}>
+
           <label>
+
             Username
 
             <input
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={e =>
+                setUsername(
+                  e.target.value
+                )
+              }
               placeholder="e.g. foodlover"
               autoComplete="username"
             />
+
           </label>
 
           <label>
+
             Password
 
             <input
               type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={e =>
+                setPassword(
+                  e.target.value
+                )
+              }
               placeholder="Enter your password"
               autoComplete={
                 mode === 'login'
@@ -749,27 +1279,36 @@ function AuthModal({
                   : 'new-password'
               }
             />
+
           </label>
 
           <button
             className="primary-button full"
             type="submit"
           >
+
             {mode === 'login' ? (
+
               <>
                 <LogIn size={17} />
                 Log in
               </>
+
             ) : (
+
               <>
                 <UserPlus size={17} />
                 Create account
               </>
+
             )}
+
           </button>
+
         </form>
 
         <div className="switch-auth">
+
           {mode === 'login'
             ? "Don't have an account?"
             : 'Already have an account?'}
@@ -785,24 +1324,41 @@ function AuthModal({
               )
             }
           >
+
             {mode === 'login'
               ? 'Sign up'
               : 'Log in'}
+
           </button>
+
         </div>
 
         <small className="demo-note">
-          School demonstration account. Do not use a real password.
+          School demonstration account.
+          Do not use a real password.
         </small>
+
       </div>
+
     </div>
+
   )
 }
 
-function ClaimedModal({ voucher, onClose }) {
-  const [copied, setCopied] = useState(false)
+/* =========================================================
+   CLAIMED MODAL
+   ========================================================= */
+
+function ClaimedModal({
+  voucher,
+  onClose
+}) {
+
+  const [copied, setCopied] =
+    useState(false)
 
   function copy() {
+
     navigator.clipboard?.writeText(
       voucher.voucher_code
     )
@@ -816,13 +1372,18 @@ function ClaimedModal({ voucher, onClose }) {
   }
 
   return (
+
     <div
       className="modal-backdrop"
       onMouseDown={e =>
-        e.target === e.currentTarget && onClose()
+        e.target ===
+          e.currentTarget &&
+        onClose()
       }
     >
+
       <div className="modal claimed-modal">
+
         <button
           className="close-button"
           onClick={onClose}
@@ -838,22 +1399,32 @@ function ClaimedModal({ voucher, onClose }) {
           VOUCHER CLAIMED
         </span>
 
-        <h2>{voucher.title}</h2>
+        <h2>
+          {voucher.title}
+        </h2>
 
         <p>
-          Your voucher is ready. Show the code when using the offer.
+          Your voucher is ready.
+          Show the code when using
+          the offer.
         </p>
 
         <div className="code-box">
-          <span>{voucher.voucher_code}</span>
+
+          <span>
+            {voucher.voucher_code}
+          </span>
 
           <button onClick={copy}>
+
             {copied ? (
               <Check size={17} />
             ) : (
               <Copy size={17} />
             )}
+
           </button>
+
         </div>
 
         <button
@@ -862,10 +1433,17 @@ function ClaimedModal({ voucher, onClose }) {
         >
           Done
         </button>
+
       </div>
+
     </div>
+
   )
 }
+
+/* =========================================================
+   ACCOUNT MODAL
+   ========================================================= */
 
 function AccountModal({
   user,
@@ -874,25 +1452,33 @@ function AccountModal({
   onClose,
   onLogout
 }) {
-  // IMPORTANT:
-  // The claims state already contains ONLY this user's claims.
-  // We still check user_id here for extra safety.
-  const mine = vouchers.filter(v =>
-    claims.some(
-      claim =>
-        Number(claim.user_id) === Number(user.id) &&
-        Number(claim.voucher_id) === Number(v.id)
-    )
+
+  const mine = vouchers.filter(
+    v =>
+      claims.some(
+        claim =>
+          Number(
+            claim.user_id
+          ) === Number(user.id) &&
+          Number(
+            claim.voucher_id
+          ) === Number(v.id)
+      )
   )
 
   return (
+
     <div
       className="modal-backdrop"
       onMouseDown={e =>
-        e.target === e.currentTarget && onClose()
+        e.target ===
+          e.currentTarget &&
+        onClose()
       }
     >
+
       <div className="modal account-modal">
+
         <button
           className="close-button"
           onClick={onClose}
@@ -901,50 +1487,88 @@ function AccountModal({
         </button>
 
         <div className="account-head">
+
           <div className="big-avatar">
+
             {user.username
               .slice(0, 1)
               .toUpperCase()}
+
           </div>
 
           <div>
+
             <span className="section-label">
               ACCOUNT
             </span>
 
-            <h2>{user.username}</h2>
+            <h2>
+              {user.username}
+            </h2>
+
           </div>
+
         </div>
 
         <div className="claimed-heading">
-          <span>My vouchers</span>
-          <b>{mine.length}</b>
+
+          <span>
+            My vouchers
+          </span>
+
+          <b>
+            {mine.length}
+          </b>
+
         </div>
 
         {mine.length ? (
+
           <div className="mini-vouchers">
+
             {mine.map(v => (
+
               <div
                 className="mini-voucher"
                 key={v.id}
               >
+
                 <span>
-                  {restaurantEmoji[v.restaurant] || '🍴'}
+
+                  {restaurantEmoji[
+                    v.restaurant
+                  ] || '🍴'}
+
                 </span>
 
                 <div>
-                  <b>{v.restaurant}</b>
-                  <small>{v.title}</small>
+
+                  <b>
+                    {v.restaurant}
+                  </b>
+
+                  <small>
+                    {v.title}
+                  </small>
+
                 </div>
 
-                <code>{v.voucher_code}</code>
+                <code>
+                  {v.voucher_code}
+                </code>
+
               </div>
+
             ))}
+
           </div>
+
         ) : (
+
           <div className="empty-state">
             You haven't claimed a voucher yet.
           </div>
+
         )}
 
         <button
@@ -953,12 +1577,20 @@ function AccountModal({
         >
           Log out
         </button>
+
       </div>
+
     </div>
+
   )
 }
 
+/* =========================================================
+   DATE FORMAT
+   ========================================================= */
+
 function formatDate(value) {
+
   return new Date(
     value + 'T00:00:00'
   ).toLocaleDateString(
@@ -970,6 +1602,10 @@ function formatDate(value) {
     }
   )
 }
+
+/* =========================================================
+   RENDER
+   ========================================================= */
 
 ReactDOM.createRoot(
   document.getElementById('root')
